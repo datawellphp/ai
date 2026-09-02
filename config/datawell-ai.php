@@ -19,4 +19,19 @@ return [
 
     'mode' => 'perSource',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Chart Tools
+    |--------------------------------------------------------------------------
+    |
+    | Whether to publish chart tools (D63): a tool per source (or one shared
+    | `chart` tool in compact mode) whose result is a typed payload
+    | (`kind: chart`) your chat front-end renders — with the buckets included
+    | so the model can still narrate. Turn off when your interface cannot
+    | draw charts.
+    |
+    */
+
+    'charts' => true,
+
 ];

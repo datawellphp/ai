@@ -38,6 +38,7 @@ it('generates one query tool per source, one tool per server action, and the sha
     expect(toolNames($tools))->toBe([
         'query_people', 'people_touch', 'people_flag', 'people_deactivate',
         'query_tags',
+        'chart_people',
         'lookup', 'values', 'progress',
     ]);
 });
@@ -93,11 +94,37 @@ it('publishes the compact mode as a fixed tool list', function (): void {
     config()->set('datawell-ai.mode', 'compact');
     $tools = app(ToolSet::class)->for($this->viewer());
 
-    expect(toolNames($tools))->toBe(['list_sources', 'describe_source', 'query', 'act', 'lookup', 'values', 'progress'])
+    expect(toolNames($tools))->toBe(['list_sources', 'describe_source', 'query', 'act', 'chart', 'lookup', 'values', 'progress'])
         ->and(tool($tools, 'list_sources')->handle([])['sources'][0]['key'])->toBe('people')
         ->and(tool($tools, 'describe_source')->handle(['source' => 'people'])['fields'])->not->toBeEmpty()
         ->and(inputSchema(tool($tools, 'query'))['source']['enum'])->toBe(['people', 'tags']);
 
     // Explicit mode wins over config.
     expect(toolNames(app(ToolSet::class)->for($this->viewer(), Mode::PerSource)))->toContain('query_people');
+});
+
+it('publishes a chart tool per groupable source, and one shared chart tool in compact mode', function (): void {
+    $tools = app(ToolSet::class)->for($this->viewer());
+
+    // Tags has nothing groupable, so no chart tool for it.
+    expect(toolNames($tools))->toContain('chart_people')
+        ->and(toolNames($tools))->not->toContain('chart_tags');
+
+    $schema = inputSchema(tool($tools, 'chart_people'));
+
+    expect($schema)->toHaveKeys(['title', 'type', 'options', 'groupBy', 'aggregates', 'filters'])
+        ->and($schema)->not->toHaveKeys(['sorts', 'select', 'page'])
+        ->and($schema['type']['enum'])->toContain('line', 'pie', 'number')
+        ->and($schema['groupBy']['items']['properties']['key']['enum'])->toBe(['active']);
+
+    $compact = app(ToolSet::class)->for($this->viewer(), Mode::Compact);
+
+    expect(toolNames($compact))->toContain('chart')
+        ->and(inputSchema(tool($compact, 'chart'))['source']['enum'])->toBe(['people', 'tags']);
+});
+
+it('omits chart tools when the host turns them off', function (): void {
+    config()->set('datawell-ai.charts', false);
+
+    expect(toolNames(app(ToolSet::class)->for($this->viewer())))->not->toContain('chart_people');
 });

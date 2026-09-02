@@ -113,3 +113,38 @@ it('runs actions through the compact act tool with the same consent rules', func
         ->and($act->handle(['source' => 'people', 'action' => 'touch', 'target' => ['ids' => [$anna->id]]])['status'])->toBe('completed')
         ->and($act->handle(['source' => 'people', 'action' => 'purge', 'target' => ['ids' => [$anna->id]]])['errors']['action'][0])->toBe('Unknown action "purge".');
 });
+
+it('returns a chart as a typed renderable with the buckets inside', function (): void {
+    $tools = app(ToolSet::class)->for($this->viewer());
+
+    $result = pick($tools, 'chart_people')->handle([
+        'title' => 'People by activity',
+        'type' => 'pie',
+        'options' => ['donut' => true],
+        'groupBy' => [['key' => 'active']],
+        'aggregates' => [['fn' => 'count']],
+    ]);
+
+    expect($result['kind'])->toBe('chart')
+        ->and($result['title'])->toBe('People by activity')
+        ->and($result['chart'])->toBe(['type' => 'pie', 'options' => ['donut' => true]])
+        ->and($result['source'])->toBe('people')
+        ->and($result['request'])->toBe(['groupBy' => [['key' => 'active']], 'aggregates' => [['fn' => 'count']]])
+        ->and($result['result']['buckets'])->toHaveCount(1)
+        ->and($result['result']['buckets'][0]['count'])->toBe(2);
+});
+
+it('passes chart validation failures through as errors', function (): void {
+    $tools = app(ToolSet::class)->for($this->viewer());
+
+    $result = pick($tools, 'chart_people')->handle([
+        'title' => 'x', 'type' => 'bar',
+        'groupBy' => [['key' => 'email']], 'aggregates' => [['fn' => 'count']],
+    ]);
+
+    expect($result)->toHaveKey('error')->and($result)->not->toHaveKey('kind');
+
+    $result = pick($tools, 'chart_people')->handle(['title' => 'x', 'type' => 'bar', 'aggregates' => []]);
+
+    expect($result)->toHaveKey('error');
+});

@@ -106,6 +106,50 @@ final class Inputs
         return $input;
     }
 
+    /** @var list<string> The presentation vocabulary a chart tool accepts (mirrors datawell/reports). */
+    public const array CHART_TYPES = ['bar', 'barHorizontal', 'line', 'area', 'pie', 'number', 'table'];
+
+    /**
+     * The input of a chart tool (D63): the grouped part of a query plus a title
+     * and a presentation. Listing-only keys (sorts, select, page) do not apply.
+     *
+     * @param  array<string, mixed>  $schema
+     * @param  list<string>  $sourceKeys
+     * @return array<string, Type>
+     */
+    public static function chart(array $schema, JsonSchema $s, array $sourceKeys = []): array
+    {
+        $input = self::query($schema, $s, $sourceKeys);
+        unset($input['sorts'], $input['select'], $input['page']);
+
+        if (! isset($input['groupBy'])) {
+            // Nothing groupable in this source's schema (compact mode's stand-in included):
+            // leave the shape open and let the executor validate.
+            $input['groupBy'] = $s->array()->items($s->object([
+                'key' => $s->string()->required(),
+                'grain' => $s->string()->enum(['day', 'week', 'month', 'quarter', 'year']),
+            ]))->description('One or two dimensions; a date field needs a grain. Omit only for a number chart.');
+            $input['aggregates'] = $s->array()->items($s->object([
+                'fn' => $s->string()->enum(['count', 'sum', 'avg', 'min', 'max'])->required(),
+                'field' => $s->string()->description('Omit for count.'),
+            ]))->required()->description('One or more measures per bucket.');
+        } else {
+            $input['groupBy'] = $input['groupBy']->description('One or two dimensions; the second becomes the series. Omit only for a number chart.');
+            $input['aggregates'] = $input['aggregates']->required()->description('One or more measures per bucket; count needs no field.');
+        }
+
+        return [
+            'title' => $s->string()->required()->description('A short chart title in the user\'s words.'),
+            'type' => $s->string()->enum(self::CHART_TYPES)->required()
+                ->description('line or area for a date dimension; bar for categories; barHorizontal for long labels; pie for shares of a few categories; number for one total with no dimension; table for exact figures.'),
+            'options' => $s->object([
+                'stacked' => $s->boolean()->description('Stack series in a bar chart.'),
+                'donut' => $s->boolean()->description('Render a pie as a donut.'),
+            ]),
+            ...$input,
+        ];
+    }
+
     /**
      * The input of an action tool: source parameters, the target, the action's own inputs.
      *

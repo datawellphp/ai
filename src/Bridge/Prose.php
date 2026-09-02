@@ -66,6 +66,48 @@ final class Prose
     }
 
     /**
+     * The AI-facing description of a chart tool (D63): what it draws, when to
+     * prefer it over a plain query, and how to speak about the result.
+     *
+     * @param  array<string, mixed>  $schema
+     */
+    public static function chart(array $schema): string
+    {
+        $source = $schema['source'];
+        $fields = $schema['fields'] ?? [];
+        $groupable = array_values(array_filter($fields, static fn (array $field): bool => (bool) ($field['groupable'] ?? false)));
+        $measurable = array_values(array_filter($fields, static fn (array $field): bool => ($field['aggregates'] ?? []) !== []));
+
+        $lines = [sprintf(
+            'Draw a chart for the user from the "%s" source: buckets from groupBy + aggregates, rendered in the user\'s interface. '
+            .'Use it whenever the user asks for a chart, graph, breakdown, trend, distribution or comparison over time or by category; use a query tool when they want rows or a single figure in prose.',
+            $source['name'],
+        )];
+
+        if ($groupable !== []) {
+            $lines[] = 'Dimensions (groupable fields): '.implode('; ', array_map(
+                static fn (array $field): string => ($field['grains'] ?? []) === []
+                    ? sprintf('%s "%s"', $field['key'], $field['label'])
+                    : sprintf('%s "%s" (grains: %s)', $field['key'], $field['label'], implode(', ', $field['grains'])),
+                $groupable,
+            )).'.';
+        }
+
+        $lines[] = 'Measures: count'.($measurable === [] ? '' : '; '.implode('; ', array_map(
+            static fn (array $field): string => sprintf('%s of %s "%s"', implode('/', $field['aggregates']), $field['key'], $field['label']),
+            $measurable,
+        ))).'.';
+
+        if (($schema['filters'] ?? []) !== []) {
+            $lines[] = 'Filters and parameters are the same as the query tool for this source.';
+        }
+
+        $lines[] = 'The result comes back to you as the buckets that were drawn: mention the headline figures in one or two sentences, and do not repeat every bucket — the user can see the chart.';
+
+        return implode(' ', $lines);
+    }
+
+    /**
      * @param  array<string, mixed>  $schema
      * @param  array<string, mixed>  $action
      */

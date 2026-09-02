@@ -38,7 +38,80 @@ final class ToolSet
 
         $tools = $mode === Mode::PerSource ? $this->perSource($user, $schemas) : $this->compact($user, $schemas);
 
-        return [...$tools, ...$this->shared($user, array_keys($schemas))];
+        return [...$tools, ...$this->charts($user, $schemas, $mode), ...$this->shared($user, array_keys($schemas))];
+    }
+
+    /**
+     * Chart tools (D63): executed server-side like any query, but the result is a
+     * typed payload — `kind: chart` with the title, presentation, the request as
+     * run and the buckets — that a chat front-end renders. Per-source mode gets
+     * one per source with the same tight enums as its query tool; compact mode
+     * gets a single `chart` tool with a source argument.
+     *
+     * @param  array<string, array<string, mixed>>  $schemas
+     * @return list<ToolDefinition>
+     */
+    private function charts(Authenticatable $user, array $schemas, Mode $mode): array
+    {
+        if ($schemas === [] || ! (bool) $this->config->get('datawell-ai.charts', true)) {
+            return [];
+        }
+
+        if ($mode === Mode::Compact) {
+            $keys = array_keys($schemas);
+
+            return [new ToolDefinition(
+                name: 'chart',
+                description: Prose::chart(self::genericSchema()).' Field keys, grains and aggregates come from describe_source.',
+                schema: static fn (JsonSchema $s): array => Inputs::chart(self::genericSchema(), $s, $keys),
+                handler: fn (array $arguments): array => $this->chartWire($user, (string) ($arguments['source'] ?? ''), $arguments),
+            )];
+        }
+
+        $tools = [];
+
+        foreach ($schemas as $key => $schema) {
+            if (array_filter($schema['fields'], static fn (array $field): bool => (bool) ($field['groupable'] ?? false)) === []) {
+                continue;
+            }
+
+            $tools[] = new ToolDefinition(
+                name: Names::tool('chart', $key),
+                description: Prose::chart($schema),
+                schema: static fn (JsonSchema $s): array => Inputs::chart($schema, $s),
+                handler: fn (array $arguments): array => $this->chartWire($user, $key, $arguments),
+            );
+        }
+
+        return $tools;
+    }
+
+    /**
+     * Run the grouped query and wrap it as a renderable. Errors pass through
+     * unchanged so the model can correct the call (D38).
+     *
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    private function chartWire(Authenticatable $user, string $source, array $arguments): array
+    {
+        $request = self::compactArguments(array_intersect_key($arguments, array_flip(['parameters', 'search', 'filters', 'groupBy', 'aggregates'])));
+        $result = $this->calls->query($user, ['source' => $source, ...$request]);
+
+        if (isset($result['error']) || ! isset($result['buckets'])) {
+            return isset($result['error']) ? $result : ['error' => 'A chart needs groupBy and aggregates.'];
+        }
+
+        $type = is_string($arguments['type'] ?? null) && in_array($arguments['type'], Inputs::CHART_TYPES, true) ? $arguments['type'] : 'bar';
+
+        return [
+            'kind' => 'chart',
+            'title' => is_string($arguments['title'] ?? null) ? $arguments['title'] : 'Chart',
+            'chart' => ['type' => $type, 'options' => self::object($arguments['options'] ?? [])],
+            'source' => $source,
+            'request' => $request,
+            'result' => $result,
+        ];
     }
 
     /**
