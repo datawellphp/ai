@@ -98,3 +98,20 @@ Please review [our security policy](.github/SECURITY.md) on how to report securi
 ## License
 
 Datawell AI is open-sourced software licensed under the [MIT license](LICENSE.md).
+
+## Chart tools
+
+Alongside the query and action tools, the bridge publishes a chart tool per
+groupable source (`chart_people`) — or one shared `chart` tool in compact mode.
+It runs the grouped query server-side and returns a typed payload:
+
+```json
+{ "kind": "chart", "title": "…", "chart": { "type": "line", "options": {} },
+  "source": "people", "request": { "groupBy": [...], "aggregates": [...] },
+  "result": { "buckets": [...], "meta": {...}, "applied": {...} } }
+```
+
+Your chat front-end renders any tool result whose `kind` it recognises (the
+`datawell/reports` `<ReportChart>` draws this one directly) while the model,
+holding the buckets, narrates the takeaway. Set `datawell-ai.charts` to `false`
+if your interface cannot draw charts.
