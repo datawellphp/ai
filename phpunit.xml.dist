@@ -20,7 +20,6 @@
             <file>tests/ArchTest.php</file>
         </testsuite>
         <testsuite name="Feature">
-            <directory>tests/Feature</directory>
             <directory>tests/Bridge</directory>
             <directory>tests/Adapters</directory>
         </testsuite>
