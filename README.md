@@ -6,7 +6,6 @@
     <a href="https://packagist.org/packages/datawell/ai"><img src="https://img.shields.io/packagist/v/datawell/ai.svg?style=flat-square" alt="Packagist"></a>
     <a href="https://packagist.org/packages/datawell/ai"><img src="https://img.shields.io/packagist/php-v/datawell/ai.svg?style=flat-square" alt="PHP from Packagist"></a>
     <a href="https://packagist.org/packages/datawell/ai"><img src="https://badge.laravel.cloud/badge/datawell/ai?style=flat" alt="Laravel versions"></a>
-    <a href="https://github.com/datawellphp/ai/actions"><img alt="GitHub Workflow Status (main)" src="https://img.shields.io/github/actions/workflow/status/datawell/ai/tests.yml?branch=main&label=Tests&style=flat-square"></a>
     <a href="https://packagist.org/packages/datawell/ai"><img src="https://img.shields.io/packagist/dt/datawell/ai.svg?style=flat-square" alt="Total Downloads"></a>
 </p>
 
@@ -83,6 +82,8 @@ Set `datawell-ai.mode` to `compact` for a fixed tool list (`list_sources`,
 Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
 
 ## Contributing
+
+This repository is a read-only copy of the `ai` package, published automatically from Datawell's development repository, so changes aren't merged here directly. Issues and pull requests are still welcome: accepted changes are applied upstream and published back here.
 
 Thank you for considering contributing to Datawell AI! Please review our [contributing guide](.github/CONTRIBUTING.md) to get started.
 
