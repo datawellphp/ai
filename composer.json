@@ -18,7 +18,7 @@
     ],
     "require": {
         "php": "^8.3",
-        "datawell/datawell": "@dev",
+        "datawell/datawell": "^0.1",
         "illuminate/contracts": "^13.16",
         "illuminate/support": "^13.16",
         "laravel/ai": "^1.3"
@@ -101,14 +101,17 @@
             "phpstan/extension-installer": true
         }
     },
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "prefer-stable": true,
     "repositories": [
         {
             "type": "path",
             "url": "../datawell",
             "options": {
-                "symlink": true
+                "symlink": true,
+                "versions": {
+                    "datawell/datawell": "dev-main"
+                }
             }
         }
     ],
