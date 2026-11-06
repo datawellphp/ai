@@ -1,6 +1,8 @@
 # Release Notes
 
-## v0.1.0 - 2026-11-06
+## [Unreleased](https://github.com/datawellphp/ai/compare/v0.1.0...main)
+
+## [v0.1.0](https://github.com/datawellphp/ai/commits/v0.1.0) - 2026-11-06
 
 First release of Datawell AI.
 
